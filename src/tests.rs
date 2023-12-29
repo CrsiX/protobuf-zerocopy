@@ -142,9 +142,10 @@ fn test_wire_tags() {
         0,
         [],
         0,
-        Err::<(WireType, u64), errors::ProtobufZeroError>(errors::ProtobufZeroError::EmptyBuffer),
+        Err::<(WireType, u64), errors::ProtobufZeroError>(errors::ProtobufZeroError::ShortBuffer),
         decode_tag
     );
+    run_test!(1, [0x22], 1, Ok((WireType::LengthDelimited, 4)), decode_tag);
     run_test!(
         1,
         [0x1f],
@@ -154,7 +155,6 @@ fn test_wire_tags() {
         ),
         decode_tag
     );
-    run_test!(1, [0x22], 1, Ok((WireType::LengthDelimited, 4)), decode_tag);
     run_test!(
         2,
         [0x22, 0x61],
@@ -167,6 +167,36 @@ fn test_wire_tags() {
     run_test!(1, [0x12], 1, Ok((WireType::LengthDelimited, 2)), decode_tag);
     run_test!(1, [0x50], 1, Ok((WireType::VarInt, 10)), decode_tag);
     run_test!(2, [0x50, 0x82], 1, Ok((WireType::VarInt, 10)), decode_tag);
+    run_test!(
+        5,
+        [0xa8, 0xd1, 0xf9, 0xd6, 0x03],
+        5,
+        Ok((WireType::VarInt, 123456789)),
+        decode_tag
+    );
+}
+
+#[test]
+fn test_var_signed_i64() {
+    run_test!(1, [0x00], 1, Ok(0), decode_var_signed_i64);
+    run_test!(1, [0x02], 1, Ok(1), decode_var_signed_i64);
+    run_test!(1, [0x04], 1, Ok(2), decode_var_signed_i64);
+    run_test!(1, [0x28], 1, Ok(20), decode_var_signed_i64);
+    run_test!(1, [0x01], 1, Ok(-1), decode_var_signed_i64);
+    run_test!(1, [0x03], 1, Ok(-2), decode_var_signed_i64);
+    run_test!(1, [0x05], 1, Ok(-3), decode_var_signed_i64);
+    run_test!(1, [0x17], 1, Ok(-12), decode_var_signed_i64);
+    run_test!(2, [0x89, 0x01], 2, Ok(-69), decode_var_signed_i64);
+    run_test!(2, [0x81, 0x02], 2, Ok(-129), decode_var_signed_i64);
+    run_test!(2, [0xc5, 0x06], 2, Ok(-419), decode_var_signed_i64);
+    run_test!(2, [0xc8, 0x06], 2, Ok(420), decode_var_signed_i64);
+    run_test!(
+        7,
+        [0x06, 0x82, 0x81, 0xf3, 0x91, 0x82, 0x23],
+        1,
+        Ok(3),
+        decode_var_signed_i64
+    );
 }
 
 #[test]
