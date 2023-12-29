@@ -1,9 +1,10 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ProtobufZeroError {
     InvalidWireType,
     EmptyBuffer,
+    ShortBuffer,
 }
 
 impl Display for ProtobufZeroError {
@@ -14,6 +15,9 @@ impl Display for ProtobufZeroError {
             }
             ProtobufZeroError::EmptyBuffer => {
                 write!(f, "Can not read beyond end of buffer")
+            }
+            ProtobufZeroError::ShortBuffer => {
+                write!(f, "Expected more bytes but the buffer was too short")
             }
         }
     }
