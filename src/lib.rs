@@ -1,13 +1,23 @@
-use crate::errors::ProtobufZeroError;
-use crate::num_from_bytes::NumFromBytes;
 use crate::wire_type::WireType;
 
-pub mod errors;
-pub(crate) mod num_from_bytes;
 pub mod wire_type;
 
 #[cfg(test)]
 mod tests;
+
+use thiserror::Error;
+
+use crate::wire_type::WireTypeError;
+
+#[derive(Error, Eq, PartialEq, Copy, Clone, Debug)]
+pub enum ProtobufZeroError {
+    #[error("{}", .0)]
+    InvalidWireType(#[from] WireTypeError),
+    #[error("Unexpected end of buffer")]
+    ShortBuffer,
+    #[error("The varint was to large")]
+    ConversionU128Error,
+}
 
 /// Read a full var int (u128) from a buffer, *not* modifying the input slice but instead returning the final offset
 pub fn decode_var_int_u128(buffer: &[u8]) -> Result<(u128, usize), ProtobufZeroError> {
