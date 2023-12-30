@@ -1,5 +1,4 @@
 use crate::wire_type::WireType;
-
 pub mod wire_type;
 
 #[cfg(test)]
@@ -86,8 +85,8 @@ pub fn decode_var_signed_i32(buffer: &mut &[u8]) -> Result<i32, ProtobufZeroErro
     Ok((result >> 1) as i32 ^ -((result & 1) as i32))
 }
 
-/// Read a 64 bit array from a buffer, modifying the input slice
-fn decode_fixed_64(buffer: &mut &[u8]) -> Result<[u8; 8], ProtobufZeroError> {
+/// Read a fixed size 64 bit number from a buffer, advancing the input slice
+fn decode_fixed_64<T: NumBytes<8>>(buffer: &mut &[u8]) -> Result<T, ProtobufZeroError> {
     let slice = match buffer.get(..8) {
         None => return Err(ProtobufZeroError::ShortBuffer),
         Some(v) => v,
@@ -99,11 +98,11 @@ fn decode_fixed_64(buffer: &mut &[u8]) -> Result<[u8; 8], ProtobufZeroError> {
     let array = [
         slice[0], slice[1], slice[2], slice[3], slice[4], slice[5], slice[6], slice[7],
     ];
-    Ok(array)
+    Ok(T::from_le_bytes(array))
 }
 
-/// Read a 32 bit array from a buffer, modifying the input slice
-fn decode_fixed_32(buffer: &mut &[u8]) -> Result<[u8; 4], ProtobufZeroError> {
+/// Read a fixed size 32 bit number from a buffer, advancing the input slice
+fn decode_fixed_32<T: NumBytes<4>>(buffer: &mut &[u8]) -> Result<T, ProtobufZeroError> {
     let slice = match buffer.get(..4) {
         None => return Err(ProtobufZeroError::ShortBuffer),
         Some(v) => v,
@@ -113,47 +112,23 @@ fn decode_fixed_32(buffer: &mut &[u8]) -> Result<[u8; 4], ProtobufZeroError> {
     }
     *buffer = &*&buffer[4..];
     let array = [slice[0], slice[1], slice[2], slice[3]];
-    Ok(array)
+    Ok(T::from_le_bytes(array))
 }
 
-/// Read a fixed-length i64 from a buffer, modifying the input slice
-#[inline]
-pub fn decode_fixed_i64(buffer: &mut &[u8]) -> Result<i64, ProtobufZeroError> {
-    let array = decode_fixed_64(buffer)?;
-    Ok(i64::from_le_bytes(array))
+pub trait NumBytes<const N: usize> {
+    fn from_le_bytes(bytes: [u8; N]) -> Self;
+    fn into_le_bytes(self) -> [u8; N];
 }
-
-/// Read a fixed-length u64 from a buffer, modifying the input slice
-#[inline]
-pub fn decode_fixed_u64(buffer: &mut &[u8]) -> Result<u64, ProtobufZeroError> {
-    let array = decode_fixed_64(buffer)?;
-    Ok(u64::from_le_bytes(array))
+macro_rules! impl_num_bytes {
+    ($($num:ty),+) => {$(
+        impl NumBytes<{ ::std::mem::size_of::<$num>() }> for $num {
+            fn from_le_bytes(bytes: [u8; { ::std::mem::size_of::<$num>() }]) -> Self {
+                Self::from_le_bytes(bytes)
+            }
+            fn into_le_bytes(self) -> [u8; { ::std::mem::size_of::<$num>() }] {
+                self.to_le_bytes()
+            }
+        }
+    )+};
 }
-
-/// Read a fixed-length f64 from a buffer, modifying the input slice
-#[inline]
-pub fn decode_fixed_f64(buffer: &mut &[u8]) -> Result<f64, ProtobufZeroError> {
-    let array = decode_fixed_64(buffer)?;
-    Ok(f64::from_le_bytes(array))
-}
-
-/// Read a fixed-length i32 from a buffer, modifying the input slice
-#[inline]
-pub fn decode_fixed_i32(buffer: &mut &[u8]) -> Result<i32, ProtobufZeroError> {
-    let array = decode_fixed_32(buffer)?;
-    Ok(i32::from_le_bytes(array))
-}
-
-/// Read a fixed-length u32 from a buffer, modifying the input slice
-#[inline]
-pub fn decode_fixed_u32(buffer: &mut &[u8]) -> Result<u32, ProtobufZeroError> {
-    let array = decode_fixed_32(buffer)?;
-    Ok(u32::from_le_bytes(array))
-}
-
-/// Read a fixed-length f32 from a buffer, modifying the input slice
-#[inline]
-pub fn decode_fixed_f32(buffer: &mut &[u8]) -> Result<f32, ProtobufZeroError> {
-    let array = decode_fixed_32(buffer)?;
-    Ok(f32::from_le_bytes(array))
-}
+impl_num_bytes!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128, f32, f64);
