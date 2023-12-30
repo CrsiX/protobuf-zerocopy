@@ -5,6 +5,7 @@ pub enum ProtobufZeroError {
     InvalidWireType,
     EmptyBuffer,
     ShortBuffer,
+    ConversionU128Error,
 }
 
 impl Display for ProtobufZeroError {
@@ -18,6 +19,9 @@ impl Display for ProtobufZeroError {
             }
             ProtobufZeroError::ShortBuffer => {
                 write!(f, "Expected more bytes but the buffer was too short")
+            }
+            ProtobufZeroError::ConversionU128Error => {
+                write!(f, "Converting u128 to another type failed")
             }
         }
     }

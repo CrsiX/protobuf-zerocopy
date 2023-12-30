@@ -17,7 +17,7 @@ fn test_var_ints() {
         0,
         [],
         0,
-        Err::<u128, errors::ProtobufZeroError>(errors::ProtobufZeroError::ShortBuffer),
+        Err::<u128, ProtobufZeroError>(ProtobufZeroError::ShortBuffer),
         decode_var_int
     );
     run_test!(1, [0x07], 1, Ok(7), decode_var_int);
@@ -54,84 +54,84 @@ fn test_var_ints() {
         6,
         [0xc9, 0x98, 0xe6, 0xe9, 0x9b, 0x05],
         6,
-        Ok(179268324425),
+        Ok(179268324425u64),
         decode_var_int
     );
     run_test!(
         7,
         [0xe7, 0xaf, 0xb4, 0xd8, 0xfd, 0xff, 0x3f],
         7,
-        Ok(281474356811751),
+        Ok(281474356811751u64),
         decode_var_int
     );
     run_test!(
         7,
         [0xf3, 0xfe, 0xef, 0xb3, 0xd3, 0xfc, 0x59],
         7,
-        Ok(395709135978355),
+        Ok(395709135978355u64),
         decode_var_int
     );
     run_test!(
         7,
         [0xdf, 0xb4, 0xd8, 0xbd, 0xfe, 0xff, 0x6c],
         7,
-        Ok(479386662214239),
+        Ok(479386662214239u64),
         decode_var_int
     );
     run_test!(
         8,
         [0xb7, 0xf3, 0xa7, 0xbd, 0xbf, 0x9d, 0xa5, 0x46],
         8,
-        Ok(39570237932829111),
+        Ok(39570237932829111u64),
         decode_var_int
     );
     run_test!(
         8,
         [0x82, 0x80, 0x87, 0x86, 0x80, 0x80, 0x80, 0x40],
         8,
-        Ok(36028797031661570),
+        Ok(36028797031661570u64),
         decode_var_int
     );
     run_test!(
         9,
         [0xc7, 0xe3, 0x81, 0xa3, 0xf8, 0xde, 0xaf, 0xc5, 0x01],
         9,
-        Ok(111111111111111111),
+        Ok(111111111111111111u64),
         decode_var_int
     );
     run_test!(
         9,
         [0xe0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x40],
         9,
-        Ok(4611686018427388000),
+        Ok(4611686018427388000u64),
         decode_var_int
     );
     run_test!(
         10,
         [0xc0, 0x81, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01],
         10,
-        Ok(9223372036854776000),
+        Ok(9223372036854776000u64),
         decode_var_int
     );
     run_test!(
         10,
         [0xc1, 0x81, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01],
         10,
-        Ok(9223372036854776001),
+        Ok(9223372036854776001u64),
         decode_var_int
     );
     run_test!(
         1,
         [0xf7],
         0,
-        Err::<u128, errors::ProtobufZeroError>(errors::ProtobufZeroError::ShortBuffer),
+        Err::<u128, ProtobufZeroError>(ProtobufZeroError::ShortBuffer),
         decode_var_int
     );
     run_test!(
         3,
         [0xf7, 0xf1, 0xb1],
         0,
-        Err::<u128, errors::ProtobufZeroError>(errors::ProtobufZeroError::ShortBuffer),
+        Err::<u128, ProtobufZeroError>(ProtobufZeroError::ShortBuffer),
         decode_var_int
     );
 }
@@ -142,7 +142,7 @@ fn test_wire_tags() {
         0,
         [],
         0,
-        Err::<(WireType, u64), errors::ProtobufZeroError>(errors::ProtobufZeroError::ShortBuffer),
+        Err::<(WireType, u32), ProtobufZeroError>(ProtobufZeroError::ShortBuffer),
         decode_tag
     );
     run_test!(1, [0x22], 1, Ok((WireType::LengthDelimited, 4)), decode_tag);
@@ -150,9 +150,7 @@ fn test_wire_tags() {
         1,
         [0x1f],
         0,
-        Err::<(WireType, u64), errors::ProtobufZeroError>(
-            errors::ProtobufZeroError::InvalidWireType
-        ),
+        Err::<(WireType, u32), ProtobufZeroError>(ProtobufZeroError::InvalidWireType),
         decode_tag
     );
     run_test!(
@@ -205,14 +203,44 @@ fn test_var_lengths() {
         0,
         [],
         0,
-        Err::<&[u8], errors::ProtobufZeroError>(errors::ProtobufZeroError::EmptyBuffer),
+        Err::<&[u8], ProtobufZeroError>(ProtobufZeroError::ShortBuffer),
         decode_var_length
     );
     run_test!(
-        9,
-        [0x12, 0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67],
-        9,
+        1,
+        [0x01],
+        1,
+        Err::<&[u8], ProtobufZeroError>(ProtobufZeroError::ShortBuffer),
+        decode_var_length
+    );
+    run_test!(
+        1,
+        [0xf1],
+        0,
+        Err::<&[u8], ProtobufZeroError>(ProtobufZeroError::ShortBuffer),
+        decode_var_length
+    );
+    run_test!(2, [0x01, 0x01], 2, Ok([0x01].as_slice()), decode_var_length);
+    run_test!(2, [0x01, 0x00], 2, Ok([0x00].as_slice()), decode_var_length);
+    run_test!(
+        4,
+        [0x01, 0x10, 0xf1, 0x93],
+        2,
+        Ok([0x10].as_slice()),
+        decode_var_length
+    );
+    run_test!(
+        8,
+        [0x07, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67],
+        8,
         Ok([0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67].as_slice()),
+        decode_var_length
+    );
+    run_test!(
+        10,
+        [0x09, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39],
+        10,
+        Ok([0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39].as_slice()),
         decode_var_length
     );
 }
