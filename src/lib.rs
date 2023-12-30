@@ -18,8 +18,9 @@ pub enum ProtobufZeroError {
     ConversionU128Error,
 }
 
-/// Read a full var int (u128) from a buffer, modifying the input slice
-pub fn decode_var_int_u128(buffer: &mut &[u8]) -> Result<u128, ProtobufZeroError> {
+/// Read a var int from a buffer, modifying the input slice
+#[inline]
+pub fn decode_var_int<T: TryFrom<u128>>(buffer: &mut &[u8]) -> Result<T, ProtobufZeroError> {
     let mut result: u128 = 0;
     let mut offset = 0;
 
@@ -37,26 +38,17 @@ pub fn decode_var_int_u128(buffer: &mut &[u8]) -> Result<u128, ProtobufZeroError
 
     *buffer = &*&buffer[offset..];
 
-    Ok(result)
+    result
+        .try_into()
+        .map_err(|_| ProtobufZeroError::ConversionU128Error)
 }
 
 /// Reads a WireType and its tag ID (field number) from a buffer, modifying the input slice
 #[inline]
 pub fn decode_tag(buffer: &mut &[u8]) -> Result<(WireType, u32), ProtobufZeroError> {
-    let full_var_int = decode_var_int_u128(buffer)?;
+    let full_var_int = decode_var_int::<u128>(buffer)?;
     let wire_type: WireType = ((full_var_int.clone() & 7) as u8).try_into()?;
     Ok((wire_type, (full_var_int >> 3) as u32))
-}
-
-/// Read a var int from a buffer, modifying the input slice
-#[inline]
-pub fn decode_var_int<T: TryFrom<u128>>(buffer: &mut &[u8]) -> Result<T, ProtobufZeroError> {
-    let value = decode_var_int_u128(buffer)?;
-    let result = match value.try_into() {
-        Ok(v) => Ok(v),
-        Err(_) => Err(ProtobufZeroError::ConversionU128Error),
-    };
-    result
 }
 
 /// Read a var length field from a buffer, modifying the input slice
@@ -72,19 +64,19 @@ pub fn decode_var_length<'a>(buffer: &mut &'a [u8]) -> Result<&'a [u8], Protobuf
 /// Read a var length signed int to i64, modifying the input slice
 #[inline]
 pub fn decode_var_signed_i64(buffer: &mut &[u8]) -> Result<i64, ProtobufZeroError> {
-    let result = decode_var_int_u128(buffer)?;
+    let result = decode_var_int::<u128>(buffer)?;
     Ok((result >> 1) as i64 ^ -((result & 1) as i64))
 }
 
 /// Read a var length signed int to i32, modifying the input slice
 #[inline]
 pub fn decode_var_signed_i32(buffer: &mut &[u8]) -> Result<i32, ProtobufZeroError> {
-    let result = decode_var_int_u128(buffer)?;
+    let result = decode_var_int::<u128>(buffer)?;
     Ok((result >> 1) as i32 ^ -((result & 1) as i32))
 }
 
 /// Read a fixed size 64 bit number from a buffer, advancing the input slice
-fn decode_fixed_64<T: NumBytes<8>>(buffer: &mut &[u8]) -> Result<T, ProtobufZeroError> {
+pub fn decode_fixed_64<T: NumBytes<8>>(buffer: &mut &[u8]) -> Result<T, ProtobufZeroError> {
     let slice = match buffer.get(..8) {
         None => return Err(ProtobufZeroError::ShortBuffer),
         Some(v) => v,
@@ -100,7 +92,7 @@ fn decode_fixed_64<T: NumBytes<8>>(buffer: &mut &[u8]) -> Result<T, ProtobufZero
 }
 
 /// Read a fixed size 32 bit number from a buffer, advancing the input slice
-fn decode_fixed_32<T: NumBytes<4>>(buffer: &mut &[u8]) -> Result<T, ProtobufZeroError> {
+pub fn decode_fixed_32<T: NumBytes<4>>(buffer: &mut &[u8]) -> Result<T, ProtobufZeroError> {
     let slice = match buffer.get(..4) {
         None => return Err(ProtobufZeroError::ShortBuffer),
         Some(v) => v,
