@@ -216,3 +216,70 @@ fn test_var_lengths() {
         decode_var_length
     );
 }
+
+#[test]
+fn test_floats() {
+    run_test!(4, [0x00, 0x00, 0x28, 0x42], 4, Ok(42.0), decode_fixed_f32);
+    run_test!(4, [0x00, 0x00, 0x28, 0xc2], 4, Ok(-42.0), decode_fixed_f32);
+    run_test!(4, [0x00, 0x00, 0x10, 0x41], 4, Ok(9.0), decode_fixed_f32);
+    run_test!(
+        4,
+        [0xa4, 0xe8, 0x8d, 0xc3],
+        4,
+        Ok(-283.8175),
+        decode_fixed_f32
+    );
+    run_test!(
+        4,
+        [0xdb, 0x0f, 0x49, 0x40],
+        4,
+        Ok(std::f32::consts::PI),
+        decode_fixed_f32
+    );
+
+    run_test!(
+        8,
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x22, 0x40],
+        8,
+        Ok(9.0),
+        decode_fixed_f64
+    );
+    run_test!(
+        8,
+        [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x45, 0xc0],
+        8,
+        Ok(-42.0),
+        decode_fixed_f64
+    );
+    run_test!(
+        8,
+        [0x5f, 0xd8, 0x5d, 0x7a, 0xa5, 0x1f, 0xf2, 0x40],
+        8,
+        Ok(74234.342374654),
+        decode_fixed_f64
+    );
+    run_test!(
+        8,
+        [0xc4, 0x3a, 0xfa, 0xd8, 0x12, 0x1e, 0x2c, 0xc1],
+        8,
+        Ok(-921353.4237841),
+        decode_fixed_f64
+    );
+    run_test!(
+        8,
+        [0x46, 0xd3, 0x35, 0x48, 0x90, 0x9a, 0x14, 0x42],
+        8,
+        Ok(22123123213.45632f64),
+        decode_fixed_f64
+    );
+    run_test!(
+        9,
+        [0x46, 0xd3, 0x35, 0x48, 0x90, 0x9a, 0x14, 0x42, 0x13],
+        8,
+        Ok(22123123213.45632),
+        decode_fixed_f64
+    );
+}
+
+#[test]
+fn test_fixed_length_ints() {}
